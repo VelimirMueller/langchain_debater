@@ -209,18 +209,6 @@ If you want to extend into any of those, fork freely.
 
 ---
 
-## The learning journey
-
-The `docs/superpowers/` directory contains the design spec and implementation plan that shaped this build, written before any code. Worth reading if you want to see the decision-making:
-
-- [`docs/superpowers/specs/2026-04-20-langchain-debate-agent-design.md`](docs/superpowers/specs/2026-04-20-langchain-debate-agent-design.md) — architecture, state shape, observability strategy, per-role trade-offs.
-- [`docs/superpowers/plans/2026-04-20-langchain-debate-agent.md`](docs/superpowers/plans/2026-04-20-langchain-debate-agent.md) — task-by-task build plan with commit boundaries.
-
-`git log --oneline` also tells the whole story cleanly — scaffolder commits alternating with "implement X" commits for each of the four decision points (prompts, moderator branching, judge termination, run-config).
-
----
-
 ## License
 
 MIT — do whatever you want with it.
-# langchain_debater
