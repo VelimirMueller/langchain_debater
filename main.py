@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # do not move below the langchain imports
 
-from langfuse.callback import CallbackHandler as LangfuseHandler  # noqa: E402
+from langfuse.langchain import CallbackHandler as LangfuseHandler  # noqa: E402
 
 from debate.graph import build_graph  # noqa: E402
 from debate.state import DebateState  # noqa: E402

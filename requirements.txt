@@ -1,6 +1,7 @@
 langgraph>=0.2
+langchain>=0.3
 langchain-core>=0.3
 langchain-anthropic>=0.3
-langfuse>=2.0
+langfuse>=4.0
 langsmith>=0.1
 python-dotenv>=1.0
