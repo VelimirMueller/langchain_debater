@@ -28,9 +28,10 @@ def build_run_config(topic: str, max_rounds: int) -> dict:
 
     run_name = f"debate:{topic[:40]}"
     tags = ["debate", "learning", "experiment:v1"]
+    # Langfuse v4 requires metadata values to be strings; coerce.
     metadata = {
         "topic": topic,
-        "max_rounds": max_rounds,
+        "max_rounds": str(max_rounds),
         "model": "claude-sonnet-4-6",
         "prompts_version": "v1",
     }
