@@ -26,20 +26,14 @@ def build_run_config(topic: str, max_rounds: int) -> dict:
     """
     langfuse_handler = LangfuseHandler()
 
-    # 👤 TODO(you): Populate run_name, tags, and metadata.
-    # Guidance:
-    #   - run_name: a short, human-readable title. Goes in the trace list UI.
-    #     Something like f"debate:{topic[:40]}" works; make it yours.
-    #   - tags: list of short strings for filtering. At minimum ["debate"].
-    #     Consider adding "learning", a topic category, a model identifier, etc.
-    #   - metadata: dict of anything you want searchable. Good candidates:
-    #     max_rounds, the full topic, model name, timestamp, experiment name.
-
-    run_name: str  # set this
-    tags: list[str]  # set this
-    metadata: dict  # set this
-
-    # END USER TODO ------------------------------------------------------------
+    run_name = f"debate:{topic[:40]}"
+    tags = ["debate", "learning", "experiment:v1"]
+    metadata = {
+        "topic": topic,
+        "max_rounds": max_rounds,
+        "model": "claude-sonnet-4-6",
+        "prompts_version": "v1",
+    }
 
     return {
         "callbacks": [langfuse_handler],
