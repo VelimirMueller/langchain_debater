@@ -141,3 +141,56 @@ def critic_node(state: DebateState, config: RunnableConfig) -> dict:
     return {
         "transcript": [Turn(role="critic", content=response.content, round_num=round_n)]
     }
+
+
+def judge_node(state: DebateState, config: RunnableConfig) -> dict:
+    """Decide whether to continue the debate or end it with a verdict."""
+    from debate.prompts import JUDGE_SYSTEM
+
+    round_n = state["round_num"] + 1
+    at_cap = round_n >= state["max_rounds"]
+
+    user_prompt = (
+        f"Topic: {state['topic']}\n\n"
+        f"Debate so far:\n{_format_transcript(state['transcript'])}\n\n"
+        f"This was round {round_n} of at most {state['max_rounds']}.\n\n"
+        "Decide: has the debate reached a natural end, or should it continue?\n"
+        "Respond with either 'CONTINUE: <reason>' or 'VERDICT: <your ruling>'."
+    )
+
+    llm_config = {**config, "run_name": f"judge-decision-r{round_n}"}
+    response = _model_for("judge").invoke(
+        [SystemMessage(content=JUDGE_SYSTEM), HumanMessage(content=user_prompt)],
+        config=llm_config,
+    )
+    judge_text = response.content.strip()
+
+    # 👤 TODO(you): Decide the termination rule.
+    # You have three inputs:
+    #   - judge_text: what the judge wrote (starts with "CONTINUE:" or "VERDICT:")
+    #   - at_cap: True if round_n >= max_rounds (safety cap reached)
+    #   - round_n: the round number just completed
+    #
+    # Set `verdict` to None if debate should continue, or to a string if it ends.
+    # The simplest policy:
+    #   - If at_cap → force end, extract the verdict text
+    #   - Else, honor the judge's choice: CONTINUE → None, VERDICT → ending string
+    # But you can make it stricter (e.g., always run all max_rounds),
+    # or looser (e.g., end early on any "VERDICT" even in round 1).
+    # Think about: does the debate benefit from early termination on consensus,
+    # or does forcing more rounds produce richer arguments?
+
+    verdict: str | None  # set this
+
+    # END USER TODO ------------------------------------------------------------
+
+    return {
+        "round_num": round_n,
+        "verdict": verdict,
+        "transcript": [Turn(role="judge", content=judge_text, round_num=round_n)],
+    }
+
+
+def judge_router(state: DebateState) -> str:
+    """Conditional edge function: route to 'continue' or 'end' based on verdict."""
+    return "end" if state["verdict"] is not None else "continue"
