@@ -223,3 +223,4 @@ The `docs/superpowers/` directory contains the design spec and implementation pl
 ## License
 
 MIT — do whatever you want with it.
+# langchain_debater
