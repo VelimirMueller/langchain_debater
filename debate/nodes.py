@@ -155,24 +155,10 @@ def judge_node(state: DebateState, config: RunnableConfig) -> dict:
     )
     judge_text = response.content.strip()
 
-    # 👤 TODO(you): Decide the termination rule.
-    # You have three inputs:
-    #   - judge_text: what the judge wrote (starts with "CONTINUE:" or "VERDICT:")
-    #   - at_cap: True if round_n >= max_rounds (safety cap reached)
-    #   - round_n: the round number just completed
-    #
-    # Set `verdict` to None if debate should continue, or to a string if it ends.
-    # The simplest policy:
-    #   - If at_cap → force end, extract the verdict text
-    #   - Else, honor the judge's choice: CONTINUE → None, VERDICT → ending string
-    # But you can make it stricter (e.g., always run all max_rounds),
-    # or looser (e.g., end early on any "VERDICT" even in round 1).
-    # Think about: does the debate benefit from early termination on consensus,
-    # or does forcing more rounds produce richer arguments?
-
-    verdict: str | None  # set this
-
-    # END USER TODO ------------------------------------------------------------
+    if at_cap or judge_text.startswith("VERDICT:"):
+        verdict = judge_text.removeprefix("CONTINUE:").removeprefix("VERDICT:").strip()
+    else:
+        verdict = None
 
     return {
         "round_num": round_n,
