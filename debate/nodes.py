@@ -53,26 +53,16 @@ def moderator_node(state: DebateState, config: RunnableConfig) -> dict:
     round_n = state["round_num"]
     is_opening = len(state["transcript"]) == 0
 
-    # 👤 TODO(you): Write the branching logic.
-    # You need to set two variables based on is_opening:
-    #   - system_prompt: which of the two moderator prompts to use
-    #   - user_prompt:   the concrete ask, built from state
-    #
-    # For the OPENING branch (is_opening == True):
-    #   Build a prompt that gives the model the topic and asks it to frame
-    #   the initial focus question. The transcript is empty, so don't reference it.
-    #
-    # For the DISTILLATION branch (is_opening == False):
-    #   Include the transcript (or at least the latest proposer + critic turns)
-    #   and ask the model to distil and pose the next focus question.
-    #
-    # The user_prompt string you build will go into a HumanMessage below.
-    # Keep it under ~15 lines total.
-
-    system_prompt: str  # set this
-    user_prompt: str    # set this
-
-    # END USER TODO ------------------------------------------------------------
+    if is_opening:
+        system_prompt = MODERATOR_OPEN_SYSTEM
+        user_prompt = f"Topic: {state['topic']}\n\nFrame the focus question for round 1."
+    else:
+        system_prompt = MODERATOR_DISTILL_SYSTEM
+        user_prompt = (
+            f"Topic: {state['topic']}\n\n"
+            f"Debate so far:\n{_format_transcript(state['transcript'])}\n\n"
+            f"Distil this round and pose the next focus question."
+        )
 
     llm_config = {**config, "run_name": f"moderator-{'open' if is_opening else 'distill'}-r{round_n}"}
     response = _model_for("moderator").invoke(
