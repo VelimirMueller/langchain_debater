@@ -85,3 +85,59 @@ def moderator_node(state: DebateState, config: RunnableConfig) -> dict:
         "focus_question": new_focus,
         "transcript": [Turn(role="moderator", content=new_focus, round_num=round_n)],
     }
+
+
+def _format_transcript(transcript: list[Turn]) -> str:
+    """Render transcript as a readable dialog for inclusion in prompts."""
+    lines = []
+    for turn in transcript:
+        lines.append(f"[{turn['role']}, round {turn['round_num']}]")
+        lines.append(turn["content"])
+        lines.append("")
+    return "\n".join(lines)
+
+
+def proposer_node(state: DebateState, config: RunnableConfig) -> dict:
+    """Argues FOR the proposition."""
+    from debate.prompts import PROPOSER_SYSTEM
+
+    round_n = state["round_num"] + 1
+    user_prompt = (
+        f"Topic: {state['topic']}\n\n"
+        f"Current focus question: {state['focus_question']}\n\n"
+        f"Debate so far:\n{_format_transcript(state['transcript'])}\n\n"
+        f"Make your case for the proposition. Round {round_n}."
+    )
+
+    llm_config = {**config, "run_name": f"proposer-argument-r{round_n}"}
+    response = _model_for("proposer").invoke(
+        [SystemMessage(content=PROPOSER_SYSTEM), HumanMessage(content=user_prompt)],
+        config=llm_config,
+    )
+
+    return {
+        "transcript": [Turn(role="proposer", content=response.content, round_num=round_n)]
+    }
+
+
+def critic_node(state: DebateState, config: RunnableConfig) -> dict:
+    """Argues AGAINST the proposition, engaging with proposer's latest turn."""
+    from debate.prompts import CRITIC_SYSTEM
+
+    round_n = state["round_num"] + 1
+    user_prompt = (
+        f"Topic: {state['topic']}\n\n"
+        f"Current focus question: {state['focus_question']}\n\n"
+        f"Debate so far:\n{_format_transcript(state['transcript'])}\n\n"
+        f"Rebut the proposer's latest argument. Round {round_n}."
+    )
+
+    llm_config = {**config, "run_name": f"critic-rebuttal-r{round_n}"}
+    response = _model_for("critic").invoke(
+        [SystemMessage(content=CRITIC_SYSTEM), HumanMessage(content=user_prompt)],
+        config=llm_config,
+    )
+
+    return {
+        "transcript": [Turn(role="critic", content=response.content, round_num=round_n)]
+    }
