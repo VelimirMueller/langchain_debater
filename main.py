@@ -5,6 +5,7 @@ IMPORTANT: load_dotenv() must run BEFORE any `from langchain...` or
 reads env vars at import time; wrong order silently disables tracing.
 """
 
+import os
 import sys
 
 from dotenv import load_dotenv
@@ -47,6 +48,14 @@ def build_run_config(topic: str, max_rounds: int) -> dict:
 def main() -> None:
     if len(sys.argv) < 2:
         print("Usage: python main.py \"<debate topic>\"", file=sys.stderr)
+        sys.exit(2)
+
+    if not os.getenv("TAVILY_API_KEY"):
+        print(
+            "TAVILY_API_KEY not set. Sign up at https://tavily.com and add "
+            "the key to your .env file.",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     topic = sys.argv[1]
