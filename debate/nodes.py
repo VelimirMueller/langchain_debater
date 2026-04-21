@@ -157,38 +157,46 @@ def _build_debater_prompt(state: DebateState, round_n: int, side: str) -> str:
 
 
 def proposer_node(state: DebateState, config: RunnableConfig) -> dict:
-    """Argues FOR the proposition."""
+    """Argues FOR the proposition, with access to research tools."""
     from debate.prompts import PROPOSER_SYSTEM
+    from debate.tools import get_research_tools
 
     round_n = state["round_num"] + 1
     user_prompt = _build_debater_prompt(state, round_n, side="for")
 
-    llm_config = {**config, "run_name": f"proposer-argument-r{round_n}"}
-    response = _model_for("proposer").invoke(
-        [SystemMessage(content=PROPOSER_SYSTEM), HumanMessage(content=user_prompt)],
-        config=llm_config,
+    content = _run_with_tools(
+        role="proposer",
+        system_prompt=PROPOSER_SYSTEM,
+        user_prompt=user_prompt,
+        tools=get_research_tools(),
+        config=config,
+        run_name_prefix=f"proposer-argument-r{round_n}",
     )
 
     return {
-        "transcript": [Turn(role="proposer", content=response.content, round_num=round_n)]
+        "transcript": [Turn(role="proposer", content=content, round_num=round_n)]
     }
 
 
 def critic_node(state: DebateState, config: RunnableConfig) -> dict:
-    """Argues AGAINST the proposition, engaging with proposer's latest turn."""
+    """Argues AGAINST the proposition, with access to research tools."""
     from debate.prompts import CRITIC_SYSTEM
+    from debate.tools import get_research_tools
 
     round_n = state["round_num"] + 1
     user_prompt = _build_debater_prompt(state, round_n, side="against")
 
-    llm_config = {**config, "run_name": f"critic-rebuttal-r{round_n}"}
-    response = _model_for("critic").invoke(
-        [SystemMessage(content=CRITIC_SYSTEM), HumanMessage(content=user_prompt)],
-        config=llm_config,
+    content = _run_with_tools(
+        role="critic",
+        system_prompt=CRITIC_SYSTEM,
+        user_prompt=user_prompt,
+        tools=get_research_tools(),
+        config=config,
+        run_name_prefix=f"critic-rebuttal-r{round_n}",
     )
 
     return {
-        "transcript": [Turn(role="critic", content=response.content, round_num=round_n)]
+        "transcript": [Turn(role="critic", content=content, round_num=round_n)]
     }
 
 
