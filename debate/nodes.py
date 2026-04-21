@@ -56,25 +56,20 @@ def _run_with_tools(
     llm = _model_for(role).bind_tools(tools)
     tool_by_name = {t.name: t for t in tools}
 
-    # ===== TASK 5: USER-WRITTEN REACT LOOP GOES HERE =====
-    # This block implements the ReAct protocol. See plan Task 5 for full hint.
-    # Your loop must either:
-    #   - return response.content when the LLM emits no tool_calls, OR
-    #   - fall through to the forced-close path below when MAX_TOOL_CALLS hit.
-    #
-    # Shape:
-    #   for i in range(MAX_TOOL_CALLS):
-    #       response = llm.invoke(messages, config={**config, "run_name": f"{run_name_prefix}-iter{i}"})
-    #       messages.append(response)   # CRITICAL: keep the AIMessage (tool_calls visible to Claude)
-    #       if not response.tool_calls:
-    #           return response.content
-    #       for tc in response.tool_calls:
-    #           try:
-    #               result = tool_by_name[tc["name"]].invoke(tc["args"])
-    #           except Exception as e:
-    #               result = f"Tool error: {e}"
-    #           messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
-    # =====================================================
+    for i in range(MAX_TOOL_CALLS):
+        response = llm.invoke(
+            messages,
+            config={**config, "run_name": f"{run_name_prefix}-iter{i}"},
+        )
+        messages.append(response)
+        if not response.tool_calls:
+            return response.content
+        for tc in response.tool_calls:
+            try:
+                result = tool_by_name[tc["name"]].invoke(tc["args"])
+            except Exception as e:
+                result = f"Tool error: {e}"
+            messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
 
     # Budget exhausted without prose: force a tool-free close.
     forced = _model_for(role).invoke(
