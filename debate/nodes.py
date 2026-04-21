@@ -5,13 +5,14 @@ delta dict. The model factory centralises per-role temperature choices.
 """
 
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
 from debate.state import DebateState, Turn
 
 MODEL_NAME = "claude-sonnet-4-6"
 MAX_TOKENS_PER_TURN = 500
+MAX_TOOL_CALLS = 4
 
 # Per-role temperature: argumentative roles get more creativity,
 # adjudicating roles get more consistency.
@@ -30,6 +31,60 @@ def _model_for(role: str) -> ChatAnthropic:
         temperature=_ROLE_TEMPERATURES[role],
         max_tokens=MAX_TOKENS_PER_TURN,
     )
+
+
+def _run_with_tools(
+    role: str,
+    system_prompt: str,
+    user_prompt: str,
+    tools: list,
+    config: RunnableConfig,
+    run_name_prefix: str,
+) -> str:
+    """Run a role with a ReAct tool-call loop. Returns final argument text.
+
+    Protocol: the LLM may emit tool_calls on each invocation. We execute
+    them and feed the results back as ToolMessages until the LLM produces
+    prose (no tool_calls). Hard-capped at MAX_TOOL_CALLS iterations as
+    defence-in-depth; beyond that we force one more tool-free invocation
+    to produce a final answer from whatever evidence was gathered.
+    """
+    messages: list[BaseMessage] = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=user_prompt),
+    ]
+    llm = _model_for(role).bind_tools(tools)
+    tool_by_name = {t.name: t for t in tools}
+
+    # ===== TASK 5: USER-WRITTEN REACT LOOP GOES HERE =====
+    # This block implements the ReAct protocol. See plan Task 5 for full hint.
+    # Your loop must either:
+    #   - return response.content when the LLM emits no tool_calls, OR
+    #   - fall through to the forced-close path below when MAX_TOOL_CALLS hit.
+    #
+    # Shape:
+    #   for i in range(MAX_TOOL_CALLS):
+    #       response = llm.invoke(messages, config={**config, "run_name": f"{run_name_prefix}-iter{i}"})
+    #       messages.append(response)   # CRITICAL: keep the AIMessage (tool_calls visible to Claude)
+    #       if not response.tool_calls:
+    #           return response.content
+    #       for tc in response.tool_calls:
+    #           try:
+    #               result = tool_by_name[tc["name"]].invoke(tc["args"])
+    #           except Exception as e:
+    #               result = f"Tool error: {e}"
+    #           messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
+    # =====================================================
+
+    # Budget exhausted without prose: force a tool-free close.
+    forced = _model_for(role).invoke(
+        messages + [HumanMessage(content=(
+            "You've used your research budget. Produce your final argument now, "
+            "using only the evidence gathered above."
+        ))],
+        config={**config, "run_name": f"{run_name_prefix}-forced-close"},
+    )
+    return forced.content
 
 
 def setup_node(state: DebateState) -> dict:
