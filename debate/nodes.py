@@ -87,17 +87,31 @@ def _format_transcript(transcript: list[Turn]) -> str:
     return "\n".join(lines)
 
 
+def _build_debater_prompt(state: DebateState, round_n: int, side: str) -> str:
+    """Build the user-message body shared by proposer and critic.
+
+    `side` is either 'for' (proposer) or 'against' (critic); it controls
+    only the final instruction sentence.
+    """
+    task_sentence = {
+        "for": "Make your case for the proposition.",
+        "against": "Rebut the proposer's latest argument.",
+    }[side]
+
+    return (
+        f"Topic: {state['topic']}\n\n"
+        f"Current focus question: {state['focus_question']}\n\n"
+        f"Debate so far:\n{_format_transcript(state['transcript'])}\n\n"
+        f"{task_sentence} Round {round_n}."
+    )
+
+
 def proposer_node(state: DebateState, config: RunnableConfig) -> dict:
     """Argues FOR the proposition."""
     from debate.prompts import PROPOSER_SYSTEM
 
     round_n = state["round_num"] + 1
-    user_prompt = (
-        f"Topic: {state['topic']}\n\n"
-        f"Current focus question: {state['focus_question']}\n\n"
-        f"Debate so far:\n{_format_transcript(state['transcript'])}\n\n"
-        f"Make your case for the proposition. Round {round_n}."
-    )
+    user_prompt = _build_debater_prompt(state, round_n, side="for")
 
     llm_config = {**config, "run_name": f"proposer-argument-r{round_n}"}
     response = _model_for("proposer").invoke(
@@ -115,12 +129,7 @@ def critic_node(state: DebateState, config: RunnableConfig) -> dict:
     from debate.prompts import CRITIC_SYSTEM
 
     round_n = state["round_num"] + 1
-    user_prompt = (
-        f"Topic: {state['topic']}\n\n"
-        f"Current focus question: {state['focus_question']}\n\n"
-        f"Debate so far:\n{_format_transcript(state['transcript'])}\n\n"
-        f"Rebut the proposer's latest argument. Round {round_n}."
-    )
+    user_prompt = _build_debater_prompt(state, round_n, side="against")
 
     llm_config = {**config, "run_name": f"critic-rebuttal-r{round_n}"}
     response = _model_for("critic").invoke(
