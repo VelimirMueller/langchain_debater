@@ -8,6 +8,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
+from debate.rate_limit import invoke_with_retry
 from debate.state import DebateState, Turn
 
 MODEL_NAME = "claude-sonnet-4-6"
@@ -57,7 +58,8 @@ def _run_with_tools(
     tool_by_name = {t.name: t for t in tools}
 
     for i in range(MAX_TOOL_CALLS):
-        response = llm.invoke(
+        response = invoke_with_retry(
+            llm,
             messages,
             config={**config, "run_name": f"{run_name_prefix}-iter{i}"},
         )
@@ -72,7 +74,8 @@ def _run_with_tools(
             messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
 
     # Budget exhausted without prose: force a tool-free close.
-    forced = _model_for(role).invoke(
+    forced = invoke_with_retry(
+        _model_for(role),
         messages + [HumanMessage(content=(
             "You've used your research budget. Produce your final argument now, "
             "using only the evidence gathered above."
@@ -115,7 +118,8 @@ def moderator_node(state: DebateState, config: RunnableConfig) -> dict:
         )
 
     llm_config = {**config, "run_name": f"moderator-{'open' if is_opening else 'distill'}-r{round_n}"}
-    response = _model_for("moderator").invoke(
+    response = invoke_with_retry(
+        _model_for("moderator"),
         [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)],
         config=llm_config,
     )
@@ -216,7 +220,8 @@ def judge_node(state: DebateState, config: RunnableConfig) -> dict:
     )
 
     llm_config = {**config, "run_name": f"judge-decision-r{round_n}"}
-    response = _model_for("judge").invoke(
+    response = invoke_with_retry(
+        _model_for("judge"),
         [SystemMessage(content=JUDGE_SYSTEM), HumanMessage(content=user_prompt)],
         config=llm_config,
     )
