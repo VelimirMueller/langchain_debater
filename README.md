@@ -197,6 +197,7 @@ Things worth noticing in both UIs:
 │   ├── state.py            # DebateState + Turn TypedDicts
 │   ├── prompts.py          # 5 system prompts — main iteration surface
 │   ├── tools.py            # Tavily search + extract as LangChain Tool instances
+│   ├── rate_limit.py       # retry-on-429 guardrail around ChatAnthropic.invoke()
 │   ├── nodes.py            # node functions + model factory + ReAct loop helper
 │   └── graph.py            # build_graph() — topology
 └── docs/
@@ -210,6 +211,7 @@ Each module has one responsibility:
 - `state.py` — types only, no logic.
 - `prompts.py` — constants only, no imports beyond docstring. **This is where you iterate most** when tuning voice.
 - `tools.py` — Tavily configuration, isolated from orchestration so retrieval knobs (`max_results`, `search_depth`) don't bleed into `nodes.py`.
+- `rate_limit.py` — reactive retry-on-429 guardrail wrapping every `ChatAnthropic.invoke()` call. Sleep duration honours the `retry-after` header when present, exponential backoff otherwise. Knobs via `.env` (`RATE_LIMIT_*`).
 - `nodes.py` — node functions that read state + config, call the LLM, return state deltas. Also houses `_run_with_tools()` (the ReAct loop) and `MAX_TOOL_CALLS`. The model factory is here too.
 - `graph.py` — short but architecturally important. Registers nodes, wires edges, compiles.
 - `main.py` — thin entry point: load env, validate keys, build graph, invoke, print.
