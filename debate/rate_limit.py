@@ -8,9 +8,8 @@ original exception propagates — we surface rate-limit failures, not hide them.
 Config is read from .env at module import time. Missing values use sensible
 defaults. Non-numeric values raise ValueError at import time (fail fast, not
 on first 429). Because config is loaded at import, `debate/rate_limit.py`
-MUST be imported after `load_dotenv()` in main.py. After Task 3 wires it
-into debate/nodes.py, this is satisfied transitively; until then, any direct
-import of this module must follow load_dotenv().
+MUST be imported after `load_dotenv()` in main.py — which it is, transitively
+via debate/nodes.py.
 """
 
 from __future__ import annotations
@@ -94,7 +93,7 @@ def _compute_sleep_seconds(
 ) -> float:
     """Compute how long to sleep before the next retry.
 
-    USER-WRITTEN (plan Task 2). Three decisions this function encodes:
+    Three decisions this function encodes:
     1. If `retry_after` is given, prefer it — but clamp at cfg.max_sleep_seconds.
     2. If `retry_after` is None, fall back to exponential backoff:
        cfg.base_sleep_seconds * (2 ** attempt), also clamped at max_sleep_seconds.
