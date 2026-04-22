@@ -8,8 +8,9 @@ original exception propagates — we surface rate-limit failures, not hide them.
 Config is read from .env at module import time. Missing values use sensible
 defaults. Non-numeric values raise ValueError at import time (fail fast, not
 on first 429). Because config is loaded at import, `debate/rate_limit.py`
-MUST be imported after `load_dotenv()` in main.py — which it is, transitively
-via debate/nodes.py.
+MUST be imported after `load_dotenv()` in main.py. After Task 3 wires it
+into debate/nodes.py, this is satisfied transitively; until then, any direct
+import of this module must follow load_dotenv().
 """
 
 from __future__ import annotations
@@ -35,11 +36,32 @@ class RateLimitConfig:
 
     @classmethod
     def load_from_env(cls) -> "RateLimitConfig":
-        """Read config from env vars. Non-numeric values raise ValueError."""
+        """Read config from env vars.
+
+        Raises ValueError at import time for invalid values:
+        - Non-numeric strings
+        - Negative max_retries
+        - Non-positive max_sleep_seconds or base_sleep_seconds
+        """
+        max_retries = int(os.getenv("RATE_LIMIT_MAX_RETRIES", "5"))
+        max_sleep_seconds = float(os.getenv("RATE_LIMIT_MAX_SLEEP_SECONDS", "90"))
+        base_sleep_seconds = float(os.getenv("RATE_LIMIT_BASE_SLEEP_SECONDS", "2"))
+        if max_retries < 0:
+            raise ValueError(
+                f"RATE_LIMIT_MAX_RETRIES must be >= 0, got {max_retries}"
+            )
+        if max_sleep_seconds <= 0:
+            raise ValueError(
+                f"RATE_LIMIT_MAX_SLEEP_SECONDS must be > 0, got {max_sleep_seconds}"
+            )
+        if base_sleep_seconds <= 0:
+            raise ValueError(
+                f"RATE_LIMIT_BASE_SLEEP_SECONDS must be > 0, got {base_sleep_seconds}"
+            )
         return cls(
-            max_retries=int(os.getenv("RATE_LIMIT_MAX_RETRIES", "5")),
-            max_sleep_seconds=float(os.getenv("RATE_LIMIT_MAX_SLEEP_SECONDS", "90")),
-            base_sleep_seconds=float(os.getenv("RATE_LIMIT_BASE_SLEEP_SECONDS", "2")),
+            max_retries=max_retries,
+            max_sleep_seconds=max_sleep_seconds,
+            base_sleep_seconds=base_sleep_seconds,
         )
 
 
