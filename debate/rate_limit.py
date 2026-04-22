@@ -110,9 +110,11 @@ def _compute_sleep_seconds(
     Returns:
         Seconds to sleep. Always > 0.
     """
-    raise NotImplementedError(
-        "Plan Task 2 — project owner to implement. See docstring above."
-    )
+    if retry_after is not None:
+        sleep_s = min(retry_after, cfg.max_sleep_seconds)
+    else:
+        sleep_s = min(cfg.base_sleep_seconds * (2 ** attempt), cfg.max_sleep_seconds)
+    return max(sleep_s, 1.0)
 
 
 def invoke_with_retry(
