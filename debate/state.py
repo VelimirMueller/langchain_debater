@@ -14,4 +14,4 @@ class DebateState(TypedDict):
     focus_question: str
     round_num: int
     max_rounds: int
-    verdict: str | None
+    verdict: str | None  # None = keep debating; "" = ended at the cap with no ruling

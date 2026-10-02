@@ -93,7 +93,10 @@ def main() -> None:
         print(f"\n[{turn['role'].upper()}, round {turn['round_num']}]")
         print(turn["content"])
     print("\n" + "=" * 70)
-    print(f"VERDICT: {final_state['verdict']}")
+    if final_state["verdict"]:
+        print(f"VERDICT: {final_state['verdict']}")
+    else:
+        print("NO VERDICT: the judge asked to continue at the round cap.")
     print("=" * 70)
     print("\nTraces:")
     print("  LangSmith: https://smith.langchain.com/  (open your project)")
