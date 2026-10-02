@@ -96,7 +96,7 @@ Each debater turn runs a hand-rolled ReAct loop inside `_run_with_tools()` in `d
 1. Invoke the LLM on `[SystemMessage, HumanMessage, …]` with tools bound via `.bind_tools([search, extract])`.
 2. If the response has no `tool_calls`, return its prose — that's the final argument.
 3. Otherwise append the `AIMessage` (tool_calls intact), execute each call, append results as `ToolMessage`s, loop.
-4. Hard cap at `MAX_TOOL_CALLS = 4`. Overrun → force one tool-free invocation ("use only the evidence above") to produce a clean close.
+4. Hard cap at `MAX_TOOL_CALLS = 4`. Overrun → force one more invocation with the tools still bound but `tool_choice={"type": "none"}` ("use only the evidence above") to produce a clean close. The tools must stay bound: Anthropic rejects a history with `tool_use` blocks when no tools are defined.
 
 Two tools, both from [`langchain-tavily`](https://pypi.org/project/langchain-tavily/):
 
@@ -142,8 +142,8 @@ Then:
 
 ```bash
 # clone, enter
-git clone <this-repo>
-cd PythonProject
+git clone https://github.com/VelimirMueller/langchain_debater.git
+cd langchain_debater
 
 # Python 3.13+ (ideally via uv, pyenv, or a PyCharm venv)
 python -m venv .venv
@@ -161,6 +161,12 @@ python main.py "Should remote work be the default for knowledge workers?"
 ```
 
 Output: the full transcript, a `VERDICT:` line, and two trace URLs. Open both.
+
+### What leaves your machine
+
+Tracing is **on by default** (`LANGSMITH_TRACING=true` in `.env.example`, plus the Langfuse callback in `main.py`). Every run sends the topic, all prompts, every model reply, and the raw Tavily results — including full scraped page text from `tavily_extract` — to LangSmith and Langfuse. Do not debate anything you would not paste into those dashboards. To run without LangSmith, set `LANGSMITH_TRACING=false`; Langfuse is attached explicitly in `build_run_config()`.
+
+Scraped web pages go straight back into the model as tool results, so a page can carry instructions aimed at the LLM (indirect prompt injection). That is acceptable for a local toy whose only output is a printed transcript — the tools are read-only — but keep it in mind before giving the agent tools that act.
 
 ---
 
@@ -254,4 +260,4 @@ If you want to extend into any of those, fork freely.
 
 ## License
 
-MIT — do whatever you want with it.
+MIT — see [`LICENSE`](LICENSE). Do whatever you want with it.
