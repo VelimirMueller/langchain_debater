@@ -234,8 +234,8 @@ def judge_node(state: DebateState, config: RunnableConfig) -> dict:
         verdict = judge_text[8:].strip()
     elif at_cap:
         # The judge ignored the final-round instruction. End anyway, but never
-        # present a CONTINUE reason as if it were a ruling.
-        verdict = "No ruling: the judge asked to continue at the round cap."
+        # present a CONTINUE reason as if it were a ruling: "" = ended, no ruling.
+        verdict = ""
     else:
         verdict = None
 
