@@ -71,8 +71,11 @@ def _run_with_tools(
                 result = f"Tool error: {e}"
             messages.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
 
-    # Budget exhausted without prose: force a tool-free close.
-    forced = _model_for(role).invoke(
+    # Budget exhausted without prose: force a tool-free close. The history
+    # holds tool_use/tool_result blocks, and Anthropic rejects those unless
+    # tools are defined — so keep the tools bound but forbid calling them.
+    closer = _model_for(role).bind_tools(tools, tool_choice={"type": "none"})
+    forced = closer.invoke(
         messages + [HumanMessage(content=(
             "You've used your research budget. Produce your final argument now, "
             "using only the evidence gathered above."
@@ -211,8 +214,13 @@ def judge_node(state: DebateState, config: RunnableConfig) -> dict:
         f"Topic: {state['topic']}\n\n"
         f"Debate so far:\n{_format_transcript(state['transcript'])}\n\n"
         f"This was round {round_n} of at most {state['max_rounds']}.\n\n"
-        "Decide: has the debate reached a natural end, or should it continue?\n"
-        "Respond with either 'CONTINUE: <reason>' or 'VERDICT: <your ruling>'."
+        + (
+            "This was the final round. You must rule now.\n"
+            "Respond with 'VERDICT: <your ruling>' only."
+            if at_cap
+            else "Decide: has the debate reached a natural end, or should it continue?\n"
+            "Respond with either 'CONTINUE: <reason>' or 'VERDICT: <your ruling>'."
+        )
     )
 
     llm_config = {**config, "run_name": f"judge-decision-r{round_n}"}
@@ -222,8 +230,12 @@ def judge_node(state: DebateState, config: RunnableConfig) -> dict:
     )
     judge_text = response.content.strip()
 
-    if at_cap or judge_text.startswith("VERDICT:"):
-        verdict = judge_text.removeprefix("CONTINUE:").removeprefix("VERDICT:").strip()
+    if judge_text[:8].upper() == "VERDICT:":
+        verdict = judge_text[8:].strip()
+    elif at_cap:
+        # The judge ignored the final-round instruction. End anyway, but never
+        # present a CONTINUE reason as if it were a ruling.
+        verdict = "No ruling: the judge asked to continue at the round cap."
     else:
         verdict = None
 

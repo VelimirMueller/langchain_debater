@@ -15,7 +15,7 @@ load_dotenv()  # do not move below the langchain imports
 from langfuse.langchain import CallbackHandler as LangfuseHandler  # noqa: E402
 
 from debate.graph import build_graph  # noqa: E402
-from debate.nodes import MAX_TOOL_CALLS  # noqa: E402
+from debate.nodes import MAX_TOOL_CALLS, MODEL_NAME  # noqa: E402
 from debate.state import DebateState  # noqa: E402
 
 
@@ -35,7 +35,7 @@ def build_run_config(topic: str, max_rounds: int) -> dict:
         "topic": topic,
         "max_rounds": str(max_rounds),
         "max_tool_calls": str(MAX_TOOL_CALLS),
-        "model": "claude-sonnet-4-6",
+        "model": MODEL_NAME,
         "prompts_version": "v2",
         "search_provider": "tavily",
     }
@@ -51,6 +51,14 @@ def build_run_config(topic: str, max_rounds: int) -> dict:
 def main() -> None:
     if len(sys.argv) < 2:
         print("Usage: python main.py \"<debate topic>\"", file=sys.stderr)
+        sys.exit(2)
+
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        print(
+            "ANTHROPIC_API_KEY not set. Get a key at https://console.anthropic.com "
+            "and add it to your .env file.",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     if not os.getenv("TAVILY_API_KEY"):
