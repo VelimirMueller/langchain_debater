@@ -217,7 +217,7 @@ Each module has one responsibility:
 - `state.py` — types only, no logic.
 - `prompts.py` — constants only, no imports beyond docstring. **This is where you iterate most** when tuning voice.
 - `tools.py` — Tavily configuration, isolated from orchestration so retrieval knobs (`max_results`, `search_depth`) don't bleed into `nodes.py`.
-- `rate_limit.py` — reactive retry-on-429 guardrail wrapping every `ChatAnthropic.invoke()` call. Sleep duration honours the `retry-after` header when present, exponential backoff otherwise. Knobs via `.env` (`RATE_LIMIT_*`).
+- `rate_limit.py` — reactive retry-on-429 guardrail wrapping every `ChatAnthropic.invoke()` call. Sleep duration honours the `retry-after` header when present, exponential backoff otherwise. Knobs via `.env` (`RATE_LIMIT_*`). It stacks on the Anthropic SDK's own retries (default 2 per call, not visible as spans), so a long 429 storm costs up to 3 × (`RATE_LIMIT_MAX_RETRIES` + 1) requests.
 - `nodes.py` — node functions that read state + config, call the LLM, return state deltas. Also houses `_run_with_tools()` (the ReAct loop) and `MAX_TOOL_CALLS`. The model factory is here too.
 - `graph.py` — short but architecturally important. Registers nodes, wires edges, compiles.
 - `main.py` — thin entry point: load env, validate keys, build graph, invoke, print.

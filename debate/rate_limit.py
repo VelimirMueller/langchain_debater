@@ -5,6 +5,12 @@ Wraps `ChatAnthropic.invoke()` with retry-on-429 behaviour. Sleeps honour the
 All sleeps are capped at RATE_LIMIT_MAX_SLEEP_SECONDS. On exhaustion, the
 original exception propagates — we surface rate-limit failures, not hide them.
 
+This sits on top of the Anthropic SDK's own retries: each ChatAnthropic
+.invoke() already retries 429/5xx up to `max_retries` times (default 2)
+before raising, and those inner retries do not appear as separate spans.
+A sustained 429 storm can therefore cost (SDK retries + 1) x
+(RATE_LIMIT_MAX_RETRIES + 1) requests. Keep that in mind when tuning.
+
 Config is read from .env at module import time. Missing values use sensible
 defaults. Non-numeric values raise ValueError at import time (fail fast, not
 on first 429). Because config is loaded at import, `debate/rate_limit.py`
