@@ -247,7 +247,7 @@ Iterations are cheap. The feedback loop is: edit → run → inspect trace → r
 
 Deliberately out of scope — this is a learning playground, not a product:
 
-- No broad test suite — validation is mostly manual, via traces. `tests/` holds only offline regression tests for the forced-close and judge-cap edge paths (`pip install -r requirements-dev.txt && python -m pytest`).
+- No broad test suite — validation is mostly manual, via traces. `tests/` holds only offline regression tests for the forced-close and judge-cap edge paths and the rate-limit guardrail (`pip install -r requirements-dev.txt && python -m pytest`).
 - No persistence (each run is ephemeral).
 - No UI or API — CLI only.
 - No streaming output (the full transcript prints on completion).
