@@ -2,6 +2,7 @@ langgraph>=0.2
 langchain>=0.3
 langchain-core>=0.3
 langchain-anthropic>=0.3
+anthropic>=0.40
 langfuse>=4.0
 langsmith>=0.1
 langchain-tavily>=0.1
